@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     const { conversationId, content, platform } = body;
 
     // Create bot message in database
-    const message = await prisma.message.create({
+    await prisma.message.create({
       data: {
         conversationId,
         content,
