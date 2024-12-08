@@ -19,17 +19,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create bot message in database
-    const newMessage = await prisma.message.create({
-      data: {
-        conversationId,
-        content,
-        sender: 'BOT',
-        platform,
-      },
-    });
-
-    // Get the updated conversation with all messages
+    // Get conversation first to ensure it exists
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
       include: {
@@ -40,10 +30,13 @@ export async function POST(request: NextRequest) {
     });
 
     if (!conversation) {
-      throw new Error('Conversation not found');
+      return NextResponse.json(
+        { error: 'Conversation not found' },
+        { status: 404 }
+      );
     }
 
-    // Send message to appropriate platform
+    // Send message to platform first
     let messageSent = false;
     if (platform === 'LINE') {
       messageSent = await sendLineMessage(conversation.userId, content);
@@ -52,10 +45,29 @@ export async function POST(request: NextRequest) {
     }
 
     if (!messageSent) {
-      throw new Error('Failed to send message to platform');
+      return NextResponse.json(
+        { error: 'Failed to send message to platform' },
+        { status: 500 }
+      );
     }
 
-    // Trigger Pusher events with optimized payloads
+    // Create bot message in database
+    const newMessage = await prisma.message.create({
+      data: {
+        conversationId,
+        content,
+        sender: 'BOT',
+        platform,
+      },
+    });
+
+    // Get updated conversation
+    const updatedConversation = {
+      ...conversation,
+      messages: [...conversation.messages, newMessage]
+    };
+
+    // Trigger Pusher events
     await Promise.all([
       pusherServer.trigger(
         PUSHER_CHANNELS.CHAT,
@@ -65,15 +77,15 @@ export async function POST(request: NextRequest) {
       pusherServer.trigger(
         PUSHER_CHANNELS.CHAT,
         PUSHER_EVENTS.CONVERSATION_UPDATED,
-        formatConversationForPusher(conversation)
+        formatConversationForPusher(updatedConversation)
       ),
     ]);
 
-    return NextResponse.json(conversation);
+    return NextResponse.json(updatedConversation);
   } catch (error) {
-    console.error('Error creating message:', error);
+    console.error('Error handling message:', error);
     return NextResponse.json(
-      { error: 'Failed to create message' },
+      { error: 'Failed to process message' },
       { status: 500 }
     );
   }

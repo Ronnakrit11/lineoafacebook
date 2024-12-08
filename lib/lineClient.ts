@@ -37,6 +37,11 @@ export async function handleLineWebhook(event: LineMessageEvent) {
     where: {
       userId: userId,
       platform: 'LINE'
+    },
+    include: {
+      messages: {
+        orderBy: { timestamp: 'asc' }
+      }
     }
   });
 
@@ -46,6 +51,9 @@ export async function handleLineWebhook(event: LineMessageEvent) {
         userId: userId,
         platform: 'LINE',
         channelId: event.source.roomId || event.source.groupId || userId
+      },
+      include: {
+        messages: true
       }
     });
   }
@@ -60,31 +68,25 @@ export async function handleLineWebhook(event: LineMessageEvent) {
     }
   });
 
-  // Get updated conversation with all messages
-  const updatedConversation = await prisma.conversation.findUnique({
-    where: { id: conversation.id },
-    include: {
-      messages: {
-        orderBy: { timestamp: 'asc' }
-      }
-    }
-  });
+  // Get updated conversation
+  const updatedConversation = {
+    ...conversation,
+    messages: [...conversation.messages, newMessage]
+  };
 
-  if (updatedConversation) {
-    // Trigger Pusher events with optimized payloads
-    await Promise.all([
-      pusherServer.trigger(
-        PUSHER_CHANNELS.CHAT,
-        PUSHER_EVENTS.MESSAGE_RECEIVED,
-        formatMessageForPusher(newMessage)
-      ),
-      pusherServer.trigger(
-        PUSHER_CHANNELS.CHAT,
-        PUSHER_EVENTS.CONVERSATION_UPDATED,
-        formatConversationForPusher(updatedConversation)
-      ),
-    ]);
-  }
+  // Trigger Pusher events
+  await Promise.all([
+    pusherServer.trigger(
+      PUSHER_CHANNELS.CHAT,
+      PUSHER_EVENTS.MESSAGE_RECEIVED,
+      formatMessageForPusher(newMessage)
+    ),
+    pusherServer.trigger(
+      PUSHER_CHANNELS.CHAT,
+      PUSHER_EVENTS.CONVERSATION_UPDATED,
+      formatConversationForPusher(updatedConversation)
+    )
+  ]);
 }
 
 export async function sendLineMessage(userId: string, message: string): Promise<boolean> {
