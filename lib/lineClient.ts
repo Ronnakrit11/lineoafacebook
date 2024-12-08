@@ -16,6 +16,7 @@ interface LineMessageEvent {
   message: {
     type: string;
     text: string;
+    id: string;
   };
   source: {
     userId: string;
@@ -23,16 +24,32 @@ interface LineMessageEvent {
     groupId?: string;
   };
   replyToken: string;
+  timestamp: number;
 }
 
 export async function handleLineWebhook(event: LineMessageEvent) {
   if (event.type !== 'message' || event.message.type !== 'text') {
-    return; // Only handle text messages
+    return;
   }
 
   const userId = event.source.userId;
   const text = event.message.text;
-  
+  const messageId = event.message.id;
+  const timestamp = new Date(event.timestamp);
+
+  // Check if message already exists
+  const existingMessage = await prisma.message.findFirst({
+    where: {
+      externalId: messageId,
+      platform: 'LINE'
+    }
+  });
+
+  if (existingMessage) {
+    console.log('Duplicate message detected, skipping:', messageId);
+    return;
+  }
+
   let conversation = await prisma.conversation.findFirst({
     where: {
       userId: userId,
@@ -58,13 +75,15 @@ export async function handleLineWebhook(event: LineMessageEvent) {
     });
   }
 
-  // Create user message
+  // Create user message with external ID
   const newMessage = await prisma.message.create({
     data: {
       conversationId: conversation.id,
       content: text,
       sender: 'USER',
-      platform: 'LINE'
+      platform: 'LINE',
+      externalId: messageId,
+      timestamp
     }
   });
 
