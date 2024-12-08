@@ -7,6 +7,7 @@ import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { pusherClient, PUSHER_EVENTS, PUSHER_CHANNELS } from '@/lib/pusher';
 import { useConversationStore } from '../store/useConversationStore';
+import { Message } from '@prisma/client';
 
 interface ChatInterfaceProps {
   initialConversations: ConversationWithMessages[];
@@ -23,7 +24,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversatio
   } = useConversationStore();
 
   useEffect(() => {
-    setConversations(initialConversations);
+    if (Array.isArray(initialConversations)) {
+      setConversations(initialConversations);
+    }
   }, [initialConversations, setConversations]);
 
   useEffect(() => {
@@ -31,13 +34,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversatio
 
     const channel = pusherClient.subscribe(PUSHER_CHANNELS.CHAT);
     
-    channel.bind(PUSHER_EVENTS.MESSAGE_RECEIVED, (message: any) => {
+    channel.bind(PUSHER_EVENTS.MESSAGE_RECEIVED, (message: Message) => {
       if (message?.conversationId) {
         addMessage(message);
       }
     });
 
-    channel.bind(PUSHER_EVENTS.CONVERSATION_UPDATED, (conversation: any) => {
+    channel.bind(PUSHER_EVENTS.CONVERSATION_UPDATED, (conversation: ConversationWithMessages) => {
       if (conversation?.id) {
         updateConversation(conversation);
       }
@@ -46,7 +49,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversatio
     // Fetch initial conversations
     fetch('/api/webhooks/conversations')
       .then(res => res.json())
-      .then(data => setConversations(data))
+      .then(data => {
+        if (Array.isArray(data)) {
+          setConversations(data);
+        }
+      })
       .catch(err => console.error('Error fetching conversations:', err));
 
     return () => {
@@ -82,7 +89,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversatio
   return (
     <div className="flex h-screen bg-gray-100">
       <ConversationList 
-        conversations={conversations} 
+        conversations={conversations || []} 
         onSelect={setSelectedConversation}
         selectedId={selectedConversation?.id}
       />
@@ -94,7 +101,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversatio
               {selectedConversation.platform} Chat - {selectedConversation.userId}
             </div>
 
-            <MessageList messages={selectedConversation.messages} />
+            <MessageList messages={selectedConversation.messages || []} />
             <MessageInput onSend={handleSendMessage} />
           </>
         ) : (

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { ConversationWithMessages } from '../types/chat';
+import { Message } from '@prisma/client';
 
 interface ConversationStore {
   conversations: ConversationWithMessages[];
@@ -7,7 +8,7 @@ interface ConversationStore {
   setConversations: (conversations: ConversationWithMessages[]) => void;
   setSelectedConversation: (conversation: ConversationWithMessages | null) => void;
   updateConversation: (updatedConversation: ConversationWithMessages) => void;
-  addMessage: (message: any) => void;
+  addMessage: (message: Message) => void;
 }
 
 export const useConversationStore = create<ConversationStore>((set) => ({
@@ -31,7 +32,9 @@ export const useConversationStore = create<ConversationStore>((set) => ({
         if (conv.id === message.conversationId) {
           return {
             ...conv,
-            messages: [...conv.messages, message],
+            messages: Array.isArray(conv.messages) 
+              ? [...conv.messages, message]
+              : [message],
           };
         }
         return conv;
@@ -41,7 +44,9 @@ export const useConversationStore = create<ConversationStore>((set) => ({
         state.selectedConversation.id === message.conversationId
           ? {
               ...state.selectedConversation,
-              messages: [...state.selectedConversation.messages, message],
+              messages: Array.isArray(state.selectedConversation.messages)
+                ? [...state.selectedConversation.messages, message]
+                : [message],
             }
           : state.selectedConversation;
 

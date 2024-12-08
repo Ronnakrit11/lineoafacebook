@@ -15,8 +15,18 @@ export const MessageList: React.FC<MessageListProps> = ({ messages }) => {
   };
 
   useEffect(() => {
-    scrollToBottom();
+    if (messages?.length > 0) {
+      scrollToBottom();
+    }
   }, [messages]);
+
+  if (!messages || messages.length === 0) {
+    return (
+      <div className="flex-grow flex items-center justify-center bg-gray-50 text-gray-500">
+        No messages yet
+      </div>
+    );
+  }
 
   return (
     <div className="flex-grow overflow-y-auto p-4 space-y-4 bg-gray-50">
