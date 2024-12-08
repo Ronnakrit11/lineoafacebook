@@ -12,7 +12,7 @@ interface ChatInterfaceProps {
   initialConversations: ConversationWithMessages[];
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversations }) => {
+export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversations }) => {
   const {
     conversations,
     selectedConversation,
