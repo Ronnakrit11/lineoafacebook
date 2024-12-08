@@ -19,20 +19,24 @@ export const MessageList: React.FC<MessageListProps> = ({ messages }) => {
   }, [messages]);
 
   return (
-    <div className="flex-grow overflow-y-auto p-4 space-y-4">
+    <div className="flex-grow overflow-y-auto p-4 space-y-4 bg-gray-50">
       {messages.map((msg) => (
         <div
           key={msg.id}
-          className={`max-w-[70%] ${
-            msg.sender === 'USER'
-              ? 'ml-auto bg-blue-500 text-white rounded-l-lg rounded-tr-lg'
-              : 'mr-auto bg-gray-200 text-gray-800 rounded-r-lg rounded-tl-lg'
-          } p-3 break-words`}
+          className={`flex ${msg.sender === 'USER' ? 'justify-start' : 'justify-end'}`}
         >
-          <div className="text-sm mb-1">
-            {msg.sender === 'USER' ? 'User' : 'Bot'}
+          <div
+            className={`max-w-[70%] rounded-lg p-3 ${
+              msg.sender === 'USER'
+                ? 'bg-white text-gray-800 border border-gray-200'
+                : 'bg-blue-500 text-white'
+            }`}
+          >
+            <div className="text-xs opacity-75 mb-1">
+              {msg.sender === 'USER' ? 'User' : 'Bot'}
+            </div>
+            <div className="break-words">{msg.content}</div>
           </div>
-          {msg.content}
         </div>
       ))}
       <div ref={messagesEndRef} />
