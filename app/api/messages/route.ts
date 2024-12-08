@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { sendLineMessage } from '@/lib/lineClient';
 import { sendFacebookMessage } from '@/lib/facebookClient';
+import type { SocketServer } from '@/app/types/socket';
 
 const prisma = new PrismaClient();
 
@@ -42,9 +43,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Emit the message to all connected clients using the global io instance
-    if (typeof global !== 'undefined' && global.io) {
+    const io = global.io as SocketServer | undefined;
+    if (io) {
       console.log('Emitting messageReceived event from API:', conversation);
-      global.io.emit('messageReceived', conversation);
+      io.emit('messageReceived', conversation);
     }
 
     return NextResponse.json(conversation);

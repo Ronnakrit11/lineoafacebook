@@ -11,7 +11,7 @@ export async function GET() {
         throw new Error('Server not initialized');
       }
 
-      const socketServer = new SocketIOServer(res.socket.server, {
+      const io = new SocketIOServer(res.socket.server, {
         path: '/api/socketio',
         addTrailingSlash: false,
         transports: ['websocket', 'polling'],
@@ -19,10 +19,10 @@ export async function GET() {
           origin: '*',
           methods: ['GET', 'POST']
         }
-      });
+      }) as SocketServer;
 
-      global.io = socketServer as SocketServer;
-      res.socket.server.io = global.io;
+      global.io = io;
+      res.socket.server.io = io;
 
       console.log('Socket.IO server initialized');
     }
