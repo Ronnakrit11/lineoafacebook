@@ -34,28 +34,35 @@ export const useConversationStore = create<ConversationStore>((set) => ({
     }),
   addMessage: (message) =>
     set((state) => {
-      if (!message || !message.conversationId) return state;
+      if (!message?.conversationId) return state;
 
       const updatedConversations = state.conversations.map((conv) => {
         if (conv.id === message.conversationId) {
-          const messages = Array.isArray(conv.messages) ? [...conv.messages] : [];
-          if (!messages.some(m => m.id === message.id)) {
-            messages.push(message);
+          // Ensure we don't add duplicate messages
+          const existingMessage = conv.messages.find(m => 
+            m.id === message.id || m.externalId === message.externalId
+          );
+          
+          if (!existingMessage) {
+            return {
+              ...conv,
+              messages: [...conv.messages, message].sort(
+                (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+              )
+            };
           }
-          return { ...conv, messages };
         }
         return conv;
       });
 
-      const updatedSelectedConversation = state.selectedConversation && 
-        state.selectedConversation.id === message.conversationId
-          ? {
-              ...state.selectedConversation,
-              messages: Array.isArray(state.selectedConversation.messages)
-                ? [...state.selectedConversation.messages, message]
-                : [message],
-            }
-          : state.selectedConversation;
+      const updatedSelectedConversation = state.selectedConversation?.id === message.conversationId
+        ? {
+            ...state.selectedConversation,
+            messages: [...state.selectedConversation.messages, message].sort(
+              (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+            )
+          }
+        : state.selectedConversation;
 
       return {
         conversations: updatedConversations,

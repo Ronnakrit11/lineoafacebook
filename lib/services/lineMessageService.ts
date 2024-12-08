@@ -22,6 +22,7 @@ export class LineMessageService {
         text: text
       };
 
+      // Send message to LINE first
       await this.client.pushMessage(userId, message);
 
       // Find the conversation for this user
@@ -48,7 +49,8 @@ export class LineMessageService {
         content: text,
         sender: 'BOT',
         platform: 'LINE',
-        timestamp: new Date()
+        timestamp: new Date(),
+        externalId: `bot_${Date.now()}`
       });
 
       // Get updated conversation
@@ -86,6 +88,7 @@ export class LineMessageService {
         text: text
       };
 
+      // Send reply to LINE first
       await this.client.replyMessage(replyToken, message);
 
       // Find the conversation for this user
@@ -112,7 +115,8 @@ export class LineMessageService {
         content: text,
         sender: 'BOT',
         platform: 'LINE',
-        timestamp: new Date()
+        timestamp: new Date(),
+        externalId: `bot_reply_${Date.now()}`
       });
 
       // Get updated conversation

@@ -6,7 +6,7 @@ import { findOrCreateConversation } from '../services/conversationService';
 import { createMessage } from '../services/messageService';
 import { sendPusherEvents } from '../services/pusherService';
 import { handleDuplicateMessage } from '../services/messageValidationService';
-import { getChannelId, getUserId } from '../utils/lineUtils';
+import { getChannelId } from '../utils/lineUtils';
 
 export async function handleLineMessage(
   event: LineTextMessageEvent,
@@ -19,24 +19,19 @@ export async function handleLineMessage(
     const { text, id: messageId } = event.message;
     const timestamp = new Date(event.timestamp);
     
-    const userId = getUserId(source);
-    if (!userId) {
-      console.error('User ID not found in event source');
-      return;
+    if (!source.userId) {
+      throw new Error('User ID is required');
     }
 
     const channelId = getChannelId(source);
 
     // Check for duplicate message
     const isDuplicate = await handleDuplicateMessage(prisma, messageId);
-    if (isDuplicate) {
-      console.log('Skipping duplicate message:', messageId);
-      return;
-    }
+    if (isDuplicate) return;
 
     // Get or create conversation
     const conversation = await findOrCreateConversation(prisma, {
-      userId,
+      userId: source.userId,
       platform: 'LINE',
       channelId
     });
@@ -51,24 +46,16 @@ export async function handleLineMessage(
       timestamp
     });
 
-    // Get updated conversation with the new user message
-    let updatedConversation = await prisma.conversation.findUnique({
-      where: { id: conversation.id },
-      include: {
-        messages: {
-          orderBy: { timestamp: 'asc' }
-        }
-      }
-    });
-
-    if (!updatedConversation) {
-      throw new Error('Failed to fetch updated conversation');
-    }
+    // Update conversation with user message
+    const conversationWithUserMessage = {
+      ...conversation,
+      messages: [...conversation.messages, userMessage]
+    };
 
     // Send Pusher events for user message
     await sendPusherEvents(pusherServer, {
       message: userMessage,
-      conversation: updatedConversation
+      conversation: conversationWithUserMessage
     });
 
     // Send automatic reply
@@ -78,33 +65,25 @@ export async function handleLineMessage(
       text: replyText
     });
 
-    // Create bot message with a slight delay to ensure proper ordering
+    // Create bot message
     const botMessage = await createMessage(prisma, {
       conversationId: conversation.id,
       content: replyText,
       sender: 'BOT',
       platform: 'LINE',
-      timestamp: new Date(Date.now() + 1000) // Add 1 second to ensure it appears after user message
+      timestamp: new Date()
     });
 
-    // Get final conversation state with both messages
-    updatedConversation = await prisma.conversation.findUnique({
-      where: { id: conversation.id },
-      include: {
-        messages: {
-          orderBy: { timestamp: 'asc' }
-        }
-      }
-    });
-
-    if (!updatedConversation) {
-      throw new Error('Failed to fetch final conversation state');
-    }
+    // Update conversation with bot message
+    const finalConversation = {
+      ...conversationWithUserMessage,
+      messages: [...conversationWithUserMessage.messages, botMessage]
+    };
 
     // Send Pusher events for bot message
     await sendPusherEvents(pusherServer, {
       message: botMessage,
-      conversation: updatedConversation
+      conversation: finalConversation
     });
 
   } catch (error) {
