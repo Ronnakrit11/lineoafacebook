@@ -15,3 +15,12 @@ export const pusherClient = new PusherClient(
     cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
   }
 );
+
+export const PUSHER_EVENTS = {
+  MESSAGE_RECEIVED: 'message-received',
+  CONVERSATION_UPDATED: 'conversation-updated',
+} as const;
+
+export const PUSHER_CHANNELS = {
+  CHAT: 'chat',
+} as const;

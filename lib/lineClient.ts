@@ -1,6 +1,7 @@
 import { Client } from '@line/bot-sdk';
 import { PrismaClient } from '@prisma/client';
-import { pusherServer } from './pusher';
+import { pusherServer, PUSHER_EVENTS, PUSHER_CHANNELS } from './pusher';
+import { formatMessageForPusher, formatConversationForPusher } from './messageFormatter';
 
 const lineConfig = {
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN || '',
@@ -47,7 +48,7 @@ export async function handleLineWebhook(event: LineMessageEvent) {
     }
 
     // Create user message
-    await prisma.message.create({
+    const newMessage = await prisma.message.create({
       data: {
         conversationId: conversation.id,
         content: text,
@@ -67,8 +68,19 @@ export async function handleLineWebhook(event: LineMessageEvent) {
     });
 
     if (updatedConversation) {
-      // Trigger Pusher event with the updated conversation
-      await pusherServer.trigger('chat', 'message-received', updatedConversation);
+      // Trigger Pusher events with optimized payloads
+      await Promise.all([
+        pusherServer.trigger(
+          PUSHER_CHANNELS.CHAT,
+          PUSHER_EVENTS.MESSAGE_RECEIVED,
+          formatMessageForPusher(newMessage)
+        ),
+        pusherServer.trigger(
+          PUSHER_CHANNELS.CHAT,
+          PUSHER_EVENTS.CONVERSATION_UPDATED,
+          formatConversationForPusher(updatedConversation)
+        ),
+      ]);
     }
 
     // Send automatic reply

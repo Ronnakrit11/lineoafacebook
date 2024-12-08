@@ -7,6 +7,7 @@ interface ConversationStore {
   setConversations: (conversations: ConversationWithMessages[]) => void;
   setSelectedConversation: (conversation: ConversationWithMessages | null) => void;
   updateConversation: (updatedConversation: ConversationWithMessages) => void;
+  addMessage: (message: any) => void;
 }
 
 export const useConversationStore = create<ConversationStore>((set) => ({
@@ -24,4 +25,29 @@ export const useConversationStore = create<ConversationStore>((set) => ({
           ? updatedConversation
           : state.selectedConversation,
     })),
+  addMessage: (message) =>
+    set((state) => {
+      const updatedConversations = state.conversations.map((conv) => {
+        if (conv.id === message.conversationId) {
+          return {
+            ...conv,
+            messages: [...conv.messages, message],
+          };
+        }
+        return conv;
+      });
+
+      const updatedSelectedConversation = state.selectedConversation && 
+        state.selectedConversation.id === message.conversationId
+          ? {
+              ...state.selectedConversation,
+              messages: [...state.selectedConversation.messages, message],
+            }
+          : state.selectedConversation;
+
+      return {
+        conversations: updatedConversations,
+        selectedConversation: updatedSelectedConversation,
+      };
+    }),
 }));

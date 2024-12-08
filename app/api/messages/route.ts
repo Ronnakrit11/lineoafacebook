@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { sendLineMessage } from '@/lib/lineClient';
 import { sendFacebookMessage } from '@/lib/facebookClient';
-import { pusherServer } from '@/lib/pusher';
+import { pusherServer, PUSHER_EVENTS, PUSHER_CHANNELS } from '@/lib/pusher';
+import { formatMessageForPusher, formatConversationForPusher } from '@/lib/messageFormatter';
 
 const prisma = new PrismaClient();
 
@@ -12,7 +13,7 @@ export async function POST(request: NextRequest) {
     const { conversationId, content, platform } = body;
 
     // Create bot message in database
-    await prisma.message.create({
+    const newMessage = await prisma.message.create({
       data: {
         conversationId,
         content,
@@ -42,8 +43,19 @@ export async function POST(request: NextRequest) {
       await sendFacebookMessage(conversation.userId, content);
     }
 
-    // Trigger Pusher event with the updated conversation
-    await pusherServer.trigger('chat', 'message-received', conversation);
+    // Trigger Pusher events with optimized payloads
+    await Promise.all([
+      pusherServer.trigger(
+        PUSHER_CHANNELS.CHAT,
+        PUSHER_EVENTS.MESSAGE_RECEIVED,
+        formatMessageForPusher(newMessage)
+      ),
+      pusherServer.trigger(
+        PUSHER_CHANNELS.CHAT,
+        PUSHER_EVENTS.CONVERSATION_UPDATED,
+        formatConversationForPusher(conversation)
+      ),
+    ]);
 
     return NextResponse.json(conversation);
   } catch (error) {

@@ -5,7 +5,7 @@ import { ConversationWithMessages } from '../types/chat';
 import { ConversationList } from './ConversationList';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
-import { pusherClient } from '@/lib/pusher';
+import { pusherClient, PUSHER_EVENTS, PUSHER_CHANNELS } from '@/lib/pusher';
 import { useConversationStore } from '../store/useConversationStore';
 
 interface ChatInterfaceProps {
@@ -18,7 +18,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversatio
     selectedConversation,
     setConversations,
     setSelectedConversation,
-    updateConversation
+    updateConversation,
+    addMessage,
   } = useConversationStore();
 
   useEffect(() => {
@@ -26,11 +27,20 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversatio
   }, [initialConversations, setConversations]);
 
   useEffect(() => {
-    const channel = pusherClient.subscribe('chat');
+    const channel = pusherClient.subscribe(PUSHER_CHANNELS.CHAT);
     
-    channel.bind('message-received', (updatedConversation: ConversationWithMessages) => {
-      console.log('Message received:', updatedConversation);
-      updateConversation(updatedConversation);
+    channel.bind(PUSHER_EVENTS.MESSAGE_RECEIVED, (message: any) => {
+      console.log('Message received:', message);
+      if (message.conversationId) {
+        addMessage(message);
+      }
+    });
+
+    channel.bind(PUSHER_EVENTS.CONVERSATION_UPDATED, (conversation: any) => {
+      console.log('Conversation updated:', conversation);
+      if (conversation.id) {
+        updateConversation(conversation);
+      }
     });
 
     // Fetch initial conversations
@@ -40,9 +50,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversatio
       .catch(err => console.error('Error fetching conversations:', err));
 
     return () => {
-      pusherClient.unsubscribe('chat');
+      pusherClient.unsubscribe(PUSHER_CHANNELS.CHAT);
     };
-  }, [updateConversation, setConversations]);
+  }, [updateConversation, setConversations, addMessage]);
 
   const handleSendMessage = async (content: string) => {
     if (!selectedConversation) return;
