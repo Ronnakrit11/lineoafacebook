@@ -1,6 +1,6 @@
 import { Client } from '@line/bot-sdk';
 import { PrismaClient } from '@prisma/client';
-import { getSocketServer } from './socketServer';
+import { pusherServer } from './pusher';
 
 const lineConfig = {
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN || '',
@@ -66,11 +66,9 @@ export async function handleLineWebhook(event: LineMessageEvent) {
       }
     });
 
-    // Emit the message received event with the updated conversation
-    const io = getSocketServer();
-    if (updatedConversation && io) {
-      console.log('Emitting messageReceived event:', updatedConversation);
-      io.emit('messageReceived', updatedConversation);
+    if (updatedConversation) {
+      // Trigger Pusher event with the updated conversation
+      await pusherServer.trigger('chat', 'message-received', updatedConversation);
     }
 
     // Send automatic reply

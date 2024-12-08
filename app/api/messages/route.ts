@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { sendLineMessage } from '@/lib/lineClient';
 import { sendFacebookMessage } from '@/lib/facebookClient';
-import { getSocketServer } from '@/lib/socketServer';
+import { pusherServer } from '@/lib/pusher';
 
 const prisma = new PrismaClient();
 
@@ -42,12 +42,8 @@ export async function POST(request: NextRequest) {
       await sendFacebookMessage(conversation.userId, content);
     }
 
-    // Emit the message to all connected clients
-    const io = getSocketServer();
-    if (io) {
-      console.log('Emitting messageReceived event from API:', conversation);
-      io.emit('messageReceived', conversation);
-    }
+    // Trigger Pusher event with the updated conversation
+    await pusherServer.trigger('chat', 'message-received', conversation);
 
     return NextResponse.json(conversation);
   } catch (error) {

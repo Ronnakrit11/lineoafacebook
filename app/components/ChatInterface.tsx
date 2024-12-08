@@ -5,7 +5,7 @@ import { ConversationWithMessages } from '../types/chat';
 import { ConversationList } from './ConversationList';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
-import { getSocket } from '@/lib/socket';
+import { pusherClient } from '@/lib/pusher';
 import { useConversationStore } from '../store/useConversationStore';
 
 interface ChatInterfaceProps {
@@ -26,26 +26,22 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversatio
   }, [initialConversations, setConversations]);
 
   useEffect(() => {
-    const socket = getSocket();
+    const channel = pusherClient.subscribe('chat');
     
-    if (socket) {
-      const handleMessageReceived = (updatedConversation: ConversationWithMessages) => {
-        console.log('Message received:', updatedConversation);
-        updateConversation(updatedConversation);
-      };
+    channel.bind('message-received', (updatedConversation: ConversationWithMessages) => {
+      console.log('Message received:', updatedConversation);
+      updateConversation(updatedConversation);
+    });
 
-      socket.on('messageReceived', handleMessageReceived);
+    // Fetch initial conversations
+    fetch('/api/webhooks/conversations')
+      .then(res => res.json())
+      .then(data => setConversations(data))
+      .catch(err => console.error('Error fetching conversations:', err));
 
-      // Fetch initial conversations
-      fetch('/api/webhooks/conversations')
-        .then(res => res.json())
-        .then(data => setConversations(data))
-        .catch(err => console.error('Error fetching conversations:', err));
-
-      return () => {
-        socket.off('messageReceived', handleMessageReceived);
-      };
-    }
+    return () => {
+      pusherClient.unsubscribe('chat');
+    };
   }, [updateConversation, setConversations]);
 
   const handleSendMessage = async (content: string) => {
