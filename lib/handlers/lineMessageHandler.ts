@@ -2,11 +2,11 @@ import type { Client } from '@line/bot-sdk';
 import type { PrismaClient } from '@prisma/client';
 import type { default as PusherType } from 'pusher';
 import type { LineTextMessageEvent } from '@/app/types/line';
-import { PUSHER_EVENTS, PUSHER_CHANNELS } from '../pusher';
-import { formatMessageForPusher, formatConversationForPusher } from '../messageFormatter';
 import { findOrCreateConversation } from '../services/conversationService';
 import { createMessage } from '../services/messageService';
 import { sendPusherEvents } from '../services/pusherService';
+import { handleDuplicateMessage } from '../services/messageValidationService';
+import { getChannelId } from '../utils/lineUtils';
 
 export async function handleLineMessage(
   event: LineTextMessageEvent,
@@ -15,27 +15,23 @@ export async function handleLineMessage(
   pusherServer: PusherType
 ) {
   try {
-    const { userId } = event.source;
+    const { source } = event;
     const { text, id: messageId } = event.message;
     const timestamp = new Date(event.timestamp);
-    const channelId = event.source.roomId || event.source.groupId || userId;
+    
+    if (!source.userId) {
+      throw new Error('User ID is required');
+    }
+
+    const channelId = getChannelId(source);
 
     // Check for duplicate message
-    const existingMessage = await prisma.message.findFirst({
-      where: {
-        externalId: messageId,
-        platform: 'LINE'
-      }
-    });
-
-    if (existingMessage) {
-      console.log('Duplicate message detected, skipping:', messageId);
-      return;
-    }
+    const isDuplicate = await handleDuplicateMessage(prisma, messageId);
+    if (isDuplicate) return;
 
     // Get or create conversation
     const conversation = await findOrCreateConversation(prisma, {
-      userId,
+      userId: source.userId,
       platform: 'LINE',
       channelId
     });

@@ -1,27 +1,27 @@
 import type { WebhookEvent, TextEventMessage, EventBase } from '@line/bot-sdk';
 
-// Define the specific source types that LINE API can return
-interface UserSource {
+interface BaseSource {
+  type: string;
+  userId?: string;
+}
+
+interface UserSource extends BaseSource {
   type: 'user';
   userId: string;
 }
 
-interface GroupSource {
+interface GroupSource extends BaseSource {
   type: 'group';
   groupId: string;
-  userId?: string;
 }
 
-interface RoomSource {
+interface RoomSource extends BaseSource {
   type: 'room';
   roomId: string;
-  userId?: string;
 }
 
-// Union type of all possible source types
-type LineSource = UserSource | GroupSource | RoomSource;
+export type LineSource = UserSource | GroupSource | RoomSource;
 
-// Extend the base event type to include all required properties
 export interface LineTextMessageEvent extends EventBase {
   type: 'message';
   message: TextEventMessage;
@@ -35,16 +35,12 @@ export interface LineTextMessageEvent extends EventBase {
 }
 
 export function isTextMessageEvent(event: WebhookEvent): event is LineTextMessageEvent {
-  if (
-    event.type !== 'message' ||
-    !('message' in event) ||
-    event.message.type !== 'text' ||
-    !('source' in event) ||
-    !('webhookEventId' in event) ||
-    !('deliveryContext' in event)
-  ) {
-    return false;
-  }
+  if (event.type !== 'message') return false;
+  if (!('message' in event)) return false;
+  if (event.message.type !== 'text') return false;
+  if (!('source' in event)) return false;
+  if (!('webhookEventId' in event)) return false;
+  if (!('deliveryContext' in event)) return false;
 
   const source = event.source;
   return (
