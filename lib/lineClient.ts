@@ -85,12 +85,9 @@ export async function handleLineWebhook(event: LineMessageEvent) {
       ),
     ]);
   }
-
-  // We're removing the automatic reply here
-  // Only send replies when explicitly requested through the chat interface
 }
 
-export async function sendLineMessage(userId: string, message: string) {
+export async function sendLineMessage(userId: string, message: string): Promise<boolean> {
   if (!userId || !message) {
     console.error('Invalid userId or message');
     return false;
