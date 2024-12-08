@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { ConversationWithMessages } from '../types/chat';
 import { ConversationList } from './ConversationList';
 import { MessageList } from './MessageList';
