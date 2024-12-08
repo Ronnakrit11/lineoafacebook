@@ -71,10 +71,10 @@ export async function handleLineWebhook(event: LineMessageEvent) {
     }
 
     // Send automatic reply
-    await lineClient.replyMessage(event.replyToken, {
-      type: 'text',
-      text: 'waiting...'
-    });
+    //await lineClient.replyMessage(event.replyToken, {
+      //type: 'text',
+      //text: 'waiting...'
+    //});
   }
 }
 
