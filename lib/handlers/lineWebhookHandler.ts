@@ -1,7 +1,7 @@
-import type { Client } from '@line/bot-sdk';
 import type { PrismaClient } from '@prisma/client';
 import type { default as PusherType } from 'pusher';
 import type { LineTextMessageEvent } from '@/app/types/line';
+import type { LineMessageService } from '../services/lineMessageService';
 import { findOrCreateConversation } from '../services/conversationService';
 import { createMessage } from '../services/messageService';
 import { sendPusherEvents } from '../services/pusherService';
@@ -11,7 +11,7 @@ import { getChannelId, getUserId } from '../utils/lineUtils';
 export async function handleLineMessage(
   event: LineTextMessageEvent,
   prisma: PrismaClient,
-  lineClient: Client,
+  lineService: LineMessageService,
   pusherServer: PusherType
 ) {
   try {
@@ -73,21 +73,23 @@ export async function handleLineMessage(
 
     // Send automatic reply
     const replyText = 'ระบบได้รับข้อความของคุณแล้ว';
-    await lineClient.replyMessage(event.replyToken, {
-      type: 'text',
-      text: replyText
-    });
+    const replySuccess = await lineService.replyMessage(event.replyToken, replyText);
 
-    // Create bot message with a slight delay to ensure proper ordering
+    if (!replySuccess) {
+      console.error('Failed to send LINE reply');
+      return;
+    }
+
+    // Create bot message with a slight delay
     const botMessage = await createMessage(prisma, {
       conversationId: conversation.id,
       content: replyText,
       sender: 'BOT',
       platform: 'LINE',
-      timestamp: new Date(Date.now() + 1000) // Add 1 second to ensure it appears after user message
+      timestamp: new Date(Date.now() + 1000) // Add 1 second to ensure proper ordering
     });
 
-    // Get final conversation state with both messages
+    // Get final conversation state
     updatedConversation = await prisma.conversation.findUnique({
       where: { id: conversation.id },
       include: {
