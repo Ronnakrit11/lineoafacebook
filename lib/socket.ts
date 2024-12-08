@@ -1,6 +1,7 @@
-import { io, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
+import type { TypedClientSocket } from '@/app/types/socket';
 
-let socket: Socket | null = null;
+let socket: TypedClientSocket | null = null;
 
 export const initializeSocket = () => {
   if (typeof window === 'undefined') return null;
@@ -10,7 +11,7 @@ export const initializeSocket = () => {
       path: '/api/socketio',
       addTrailingSlash: false,
       transports: ['websocket', 'polling'],
-    });
+    }) as TypedClientSocket;
 
     socket.on('connect', () => {
       console.log('Connected to WebSocket server');

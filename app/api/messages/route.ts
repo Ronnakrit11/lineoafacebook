@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { getSocket } from '@/lib/socket';
 
 const prisma = new PrismaClient();
 
@@ -9,7 +8,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { conversationId, content, platform } = body;
 
-    const message = await prisma.message.create({
+    await prisma.message.create({
       data: {
         conversationId,
         content,
@@ -27,12 +26,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    if (updatedConversation) {
-      // Emit the message to all connected clients
-      const io = (global as any).io;
-      if (io) {
-        io.emit('messageReceived', updatedConversation);
-      }
+    if (updatedConversation && global.io) {
+      global.io.emit('messageReceived', updatedConversation);
     }
 
     return NextResponse.json(updatedConversation);
