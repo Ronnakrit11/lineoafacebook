@@ -17,6 +17,8 @@
     "facebook-nodejs-sdk": "^0.1.0",
     "next": "15.0.4",
     "prisma": "^6.0.1",
+    "pusher": "^5.2.0",
+    "pusher-js": "^8.4.0-rc2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "socket.io": "^4.8.1",
@@ -24,9 +26,7 @@
     "zustand": "^4.5.0",
     "@types/node": "^20",
     "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "pusher": "^5.2.0",
-    "pusher-js": "^8.4.0-rc2"
+    "@types/react-dom": "^19"
   },
   "devDependencies": {
     "eslint": "^8",

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { ConversationWithMessages } from '../types/chat';
 import { ConversationList } from './ConversationList';
 import { MessageList } from './MessageList';
@@ -8,6 +8,7 @@ import { MessageInput } from './MessageInput';
 import { pusherClient, PUSHER_EVENTS, PUSHER_CHANNELS } from '@/lib/pusher';
 import { useConversationStore } from '../store/useConversationStore';
 import { Message } from '@prisma/client';
+import type { PusherMessage, PusherConversation } from '@/lib/messageFormatter';
 
 interface ChatInterfaceProps {
   initialConversations: ConversationWithMessages[];
@@ -23,6 +24,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversatio
     addMessage,
   } = useConversationStore();
 
+  const handleMessageReceived = useCallback((message: PusherMessage) => {
+    if (message?.conversationId) {
+      addMessage(message as Message);
+    }
+  }, [addMessage]);
+
+  const handleConversationUpdated = useCallback((conversation: PusherConversation) => {
+    if (conversation?.id) {
+      updateConversation(conversation as ConversationWithMessages);
+    }
+  }, [updateConversation]);
+
   useEffect(() => {
     if (Array.isArray(initialConversations)) {
       setConversations(initialConversations);
@@ -34,33 +47,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversatio
 
     const channel = pusherClient.subscribe(PUSHER_CHANNELS.CHAT);
     
-    channel.bind(PUSHER_EVENTS.MESSAGE_RECEIVED, (message: Message) => {
-      if (message?.conversationId) {
-        addMessage(message);
-      }
-    });
-
-    channel.bind(PUSHER_EVENTS.CONVERSATION_UPDATED, (conversation: ConversationWithMessages) => {
-      if (conversation?.id) {
-        updateConversation(conversation);
-      }
-    });
-
-    // Fetch initial conversations
-    fetch('/api/webhooks/conversations')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setConversations(data);
-        }
-      })
-      .catch(err => console.error('Error fetching conversations:', err));
+    channel.bind(PUSHER_EVENTS.MESSAGE_RECEIVED, handleMessageReceived);
+    channel.bind(PUSHER_EVENTS.CONVERSATION_UPDATED, handleConversationUpdated);
 
     return () => {
-      channel.unbind_all();
+      channel.unbind(PUSHER_EVENTS.MESSAGE_RECEIVED, handleMessageReceived);
+      channel.unbind(PUSHER_EVENTS.CONVERSATION_UPDATED, handleConversationUpdated);
       pusherClient.unsubscribe(PUSHER_CHANNELS.CHAT);
     };
-  }, [updateConversation, setConversations, addMessage]);
+  }, [handleMessageReceived, handleConversationUpdated]);
 
   const handleSendMessage = async (content: string) => {
     if (!selectedConversation) return;

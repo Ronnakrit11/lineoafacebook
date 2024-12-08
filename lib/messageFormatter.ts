@@ -1,46 +1,40 @@
 import { Message, Conversation } from '@prisma/client';
 import type { ConversationWithMessages } from '@/app/types/chat';
 
-interface PusherMessage {
+export interface PusherMessage {
   id: string;
+  conversationId: string;
   content: string;
   sender: string;
   timestamp: Date;
+  platform: string;
 }
 
-interface PusherConversation {
+export interface PusherConversation {
   id: string;
   platform: string;
   userId: string;
-  lastMessage?: PusherMessage;  // Make lastMessage optional
+  messages: PusherMessage[];
 }
 
 export function formatMessageForPusher(message: Message): PusherMessage {
   return {
     id: message.id,
+    conversationId: message.conversationId,
     content: message.content,
     sender: message.sender,
     timestamp: message.timestamp,
+    platform: message.platform,
   };
 }
 
 export function formatConversationForPusher(
   conversation: ConversationWithMessages
 ): PusherConversation {
-  const lastMessage = conversation.messages[conversation.messages.length - 1];
-  
-  const baseConversation: PusherConversation = {
+  return {
     id: conversation.id,
     platform: conversation.platform,
     userId: conversation.userId,
+    messages: conversation.messages.map(formatMessageForPusher),
   };
-
-  if (lastMessage) {
-    return {
-      ...baseConversation,
-      lastMessage: formatMessageForPusher(lastMessage),
-    };
-  }
-
-  return baseConversation;
 }
