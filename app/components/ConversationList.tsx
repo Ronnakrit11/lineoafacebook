@@ -18,14 +18,14 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   };
 
   return (
-    <div className="w-1/4 border-r overflow-y-auto">
+    <div className="w-1/4 border-r border-secondary overflow-y-auto">
       {conversations.map((conv) => (
         <div
           key={conv.id}
           onClick={() => onSelect(conv)}
-          className="p-4 hover:bg-gray-100 cursor-pointer flex items-center gap-3 border-b"
+          className="p-4 hover:bg-secondary cursor-pointer flex items-center gap-3 border-b border-secondary transition-colors"
         >
-          <div className="relative w-12 h-12 rounded-full overflow-hidden">
+          <div className="relative w-12 h-12 rounded-full overflow-hidden bg-muted">
             {conv.pictureUrl ? (
               <Image
                 src={conv.pictureUrl}
@@ -45,10 +45,10 @@ export const ConversationList: React.FC<ConversationListProps> = ({
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium truncate">
+            <h3 className="font-medium truncate text-foreground">
               {conv.displayName || `${conv.platform} User`}
             </h3>
-            <p className="text-sm text-gray-500 truncate">
+            <p className="text-sm text-muted-foreground truncate">
               {conv.platform} - {conv.userId}
             </p>
           </div>
