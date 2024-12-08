@@ -13,6 +13,8 @@ export async function sendLineMessage(userId: string, message: string): Promise<
       type: 'text',
       text: message
     });
+    
+    console.log('Successfully sent LINE message to:', userId);
     return true;
   } catch (error) {
     console.error('Error sending LINE message:', error);
