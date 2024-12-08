@@ -27,14 +27,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversations }) =
 
   useEffect(() => {
     const socket = getSocket();
+    
+    if (socket) {
+      socket.on('messageReceived', (updatedConversation: ConversationWithMessages) => {
+        updateConversation(updatedConversation);
+      });
 
-    socket.on('messageReceived', (updatedConversation: ConversationWithMessages) => {
-      updateConversation(updatedConversation);
-    });
-
-    return () => {
-      socket.off('messageReceived');
-    };
+      return () => {
+        socket.off('messageReceived');
+      };
+    }
   }, [updateConversation]);
 
   const handleSendMessage = async (content: string) => {

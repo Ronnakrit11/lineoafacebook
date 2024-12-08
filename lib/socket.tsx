@@ -1,15 +1,25 @@
 import { io, Socket } from 'socket.io-client';
 
-let socket: Socket;
+let socket: Socket | null = null;
 
 export const initializeSocket = () => {
-  socket = io(process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:3000', {
-    path: '/api/socketio',
-  });
+  if (typeof window === 'undefined') return null;
+  
+  if (!socket) {
+    socket = io(process.env.NEXT_PUBLIC_WEBSOCKET_URL || window.location.origin, {
+      path: '/api/socketio',
+      addTrailingSlash: false,
+      transports: ['websocket', 'polling'],
+    });
 
-  socket.on('connect', () => {
-    console.log('Connected to WebSocket');
-  });
+    socket.on('connect', () => {
+      console.log('Connected to WebSocket server');
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+    });
+  }
 
   return socket;
 };
