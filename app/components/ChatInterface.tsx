@@ -55,10 +55,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversations }) =
         }),
       });
 
-      if (response.ok) {
-        const updatedConversation = await response.json();
-        updateConversation(updatedConversation);
+      if (!response.ok) {
+        throw new Error('Failed to send message');
       }
+
+      const updatedConversation = await response.json();
+      updateConversation(updatedConversation);
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -76,7 +78,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversations }) =
         {selectedConversation ? (
           <>
             <div className="p-4 bg-gray-200 font-bold">
-              {selectedConversation.platform} Chat
+              {selectedConversation.platform} Chat - {selectedConversation.userId}
             </div>
 
             <MessageList messages={selectedConversation.messages} />

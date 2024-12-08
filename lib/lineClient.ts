@@ -45,6 +45,7 @@ export async function handleLineWebhook(event: LineMessageEvent) {
       });
     }
 
+    // Create user message
     await prisma.message.create({
       data: {
         conversationId: conversation.id,
@@ -54,6 +55,7 @@ export async function handleLineWebhook(event: LineMessageEvent) {
       }
     });
 
+    // Get updated conversation with all messages
     const updatedConversation = await prisma.conversation.findUnique({
       where: { id: conversation.id },
       include: {
@@ -63,9 +65,16 @@ export async function handleLineWebhook(event: LineMessageEvent) {
       }
     });
 
+    // Emit the message received event with the updated conversation
     if (updatedConversation && global.io) {
       global.io.emit('messageReceived', updatedConversation);
     }
+
+    // Send automatic reply
+    await lineClient.replyMessage(event.replyToken, {
+      type: 'text',
+      text: 'ระบบได้รับข้อความของคุณแล้ว'
+    });
   }
 }
 
