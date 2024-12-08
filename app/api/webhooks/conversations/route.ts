@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -14,7 +14,7 @@ export async function GET() {
     });
     
     return NextResponse.json(conversations);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch conversations' }, { status: 500 });
   }
 }

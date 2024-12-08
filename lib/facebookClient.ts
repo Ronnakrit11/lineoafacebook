@@ -6,14 +6,30 @@ const prisma = new PrismaClient();
 const FACEBOOK_GRAPH_API = 'https://graph.facebook.com/v17.0/me/messages';
 const PAGE_ACCESS_TOKEN = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
 
-export async function handleFacebookWebhook(body: any) {
+interface FacebookWebhookEntry {
+  id: string;
+  messaging: Array<{
+    sender: {
+      id: string;
+    };
+    message: {
+      text: string;
+    };
+  }>;
+}
+
+interface FacebookWebhookBody {
+  object: string;
+  entry: FacebookWebhookEntry[];
+}
+
+export async function handleFacebookWebhook(body: FacebookWebhookBody) {
   if (body.object === 'page') {
     for (const entry of body.entry) {
       const webhookEvent = entry.messaging[0];
       const senderId = webhookEvent.sender.id;
       const message = webhookEvent.message.text;
 
-      // สร้างหรือค้นหา conversation
       let conversation = await prisma.conversation.findFirst({
         where: {
           userId: senderId,
@@ -31,7 +47,6 @@ export async function handleFacebookWebhook(body: any) {
         });
       }
 
-      // บันทึกข้อความ
       await prisma.message.create({
         data: {
           conversationId: conversation.id,
@@ -41,7 +56,6 @@ export async function handleFacebookWebhook(body: any) {
         }
       });
 
-      // ส่งข้อความตอบกลับ
       await sendFacebookMessage(senderId, 'ระบบได้รับข้อความของคุณแล้ว');
     }
   }

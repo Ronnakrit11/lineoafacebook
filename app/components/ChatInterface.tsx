@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Conversation, Message, Platform } from '@prisma/client';
+import React, { useState } from 'react';
+import { Conversation, Message } from '@prisma/client';
 
 interface ChatInterfaceProps {
   conversations: (Conversation & { messages: Message[] })[];
