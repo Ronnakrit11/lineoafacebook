@@ -73,7 +73,7 @@ export async function handleLineWebhook(event: LineMessageEvent) {
     // Send automatic reply
     await lineClient.replyMessage(event.replyToken, {
       type: 'text',
-      text: 'ระบบได้รับข้อความของคุณแล้ว'
+      text: 'waiting...'
     });
   }
 }
