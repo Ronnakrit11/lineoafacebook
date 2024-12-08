@@ -73,41 +73,12 @@ export async function handleLineMessage(
 
     // Send automatic reply
     const replyText = 'ระบบได้รับข้อความของคุณแล้ว';
-    const replySuccess = await lineService.replyMessage(event.replyToken, replyText);
+    const replySuccess = await lineService.replyMessage(event.replyToken, replyText, userId);
 
     if (!replySuccess) {
       console.error('Failed to send LINE reply');
       return;
     }
-
-    // Create bot message with a slight delay
-    const botMessage = await createMessage(prisma, {
-      conversationId: conversation.id,
-      content: replyText,
-      sender: 'BOT',
-      platform: 'LINE',
-      timestamp: new Date(Date.now() + 1000) // Add 1 second to ensure proper ordering
-    });
-
-    // Get final conversation state
-    updatedConversation = await prisma.conversation.findUnique({
-      where: { id: conversation.id },
-      include: {
-        messages: {
-          orderBy: { timestamp: 'asc' }
-        }
-      }
-    });
-
-    if (!updatedConversation) {
-      throw new Error('Failed to fetch final conversation state');
-    }
-
-    // Send Pusher events for bot message
-    await sendPusherEvents(pusherServer, {
-      message: botMessage,
-      conversation: updatedConversation
-    });
 
   } catch (error) {
     console.error('Error handling LINE message:', error);
