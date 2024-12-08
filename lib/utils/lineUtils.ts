@@ -9,6 +9,12 @@ export function getChannelId(source: LineSource): string {
     case 'user':
       return source.userId;
     default:
-      throw new Error('Invalid source type');
+      // This helps TypeScript narrow down the type
+      const _exhaustiveCheck: never = source;
+      throw new Error(`Unhandled source type: ${(_exhaustiveCheck as LineSource).type}`);
   }
+}
+
+export function getUserId(source: LineSource): string | undefined {
+  return source.userId;
 }

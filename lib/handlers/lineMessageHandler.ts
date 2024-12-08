@@ -6,7 +6,7 @@ import { findOrCreateConversation } from '../services/conversationService';
 import { createMessage } from '../services/messageService';
 import { sendPusherEvents } from '../services/pusherService';
 import { handleDuplicateMessage } from '../services/messageValidationService';
-import { getChannelId } from '../utils/lineUtils';
+import { getChannelId, getUserId } from '../utils/lineUtils';
 
 export async function handleLineMessage(
   event: LineTextMessageEvent,
@@ -19,19 +19,24 @@ export async function handleLineMessage(
     const { text, id: messageId } = event.message;
     const timestamp = new Date(event.timestamp);
     
-    if (!source.userId) {
-      throw new Error('User ID is required');
+    const userId = getUserId(source);
+    if (!userId) {
+      console.error('User ID not found in event source');
+      return;
     }
 
     const channelId = getChannelId(source);
 
     // Check for duplicate message
     const isDuplicate = await handleDuplicateMessage(prisma, messageId);
-    if (isDuplicate) return;
+    if (isDuplicate) {
+      console.log('Skipping duplicate message:', messageId);
+      return;
+    }
 
     // Get or create conversation
     const conversation = await findOrCreateConversation(prisma, {
-      userId: source.userId,
+      userId,
       platform: 'LINE',
       channelId
     });
@@ -46,16 +51,13 @@ export async function handleLineMessage(
       timestamp
     });
 
-    // Update conversation with user message
-    const conversationWithUserMessage = {
-      ...conversation,
-      messages: [...conversation.messages, userMessage]
-    };
-
     // Send Pusher events for user message
     await sendPusherEvents(pusherServer, {
       message: userMessage,
-      conversation: conversationWithUserMessage
+      conversation: {
+        ...conversation,
+        messages: [...conversation.messages, userMessage]
+      }
     });
 
     // Send automatic reply
@@ -74,16 +76,13 @@ export async function handleLineMessage(
       timestamp: new Date()
     });
 
-    // Update conversation with bot message
-    const finalConversation = {
-      ...conversationWithUserMessage,
-      messages: [...conversationWithUserMessage.messages, botMessage]
-    };
-
     // Send Pusher events for bot message
     await sendPusherEvents(pusherServer, {
       message: botMessage,
-      conversation: finalConversation
+      conversation: {
+        ...conversation,
+        messages: [...conversation.messages, userMessage, botMessage]
+      }
     });
 
   } catch (error) {

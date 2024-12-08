@@ -1,25 +1,28 @@
 import type { WebhookEvent, TextEventMessage, EventBase } from '@line/bot-sdk';
 
-export interface UserSource {
+export interface BaseSource {
+  type: string;
+  userId?: string;
+}
+
+export interface UserSource extends BaseSource {
   type: 'user';
   userId: string;
 }
 
-export interface GroupSource {
+export interface GroupSource extends BaseSource {
   type: 'group';
-  userId?: string;
   groupId: string;
 }
 
-export interface RoomSource {
+export interface RoomSource extends BaseSource {
   type: 'room';
-  userId?: string;
   roomId: string;
 }
 
 export type LineSource = UserSource | GroupSource | RoomSource;
 
-export interface LineTextMessageEvent extends Omit<EventBase, 'source'> {
+export interface LineTextMessageEvent extends EventBase {
   type: 'message';
   message: TextEventMessage;
   source: LineSource;
