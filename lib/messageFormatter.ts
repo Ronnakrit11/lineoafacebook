@@ -1,4 +1,4 @@
-import { Message, Conversation } from '@prisma/client';
+import { Message } from '@prisma/client';
 import type { ConversationWithMessages } from '@/app/types/chat';
 
 export interface PusherMessage {
