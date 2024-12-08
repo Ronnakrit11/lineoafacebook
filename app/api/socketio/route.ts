@@ -1,6 +1,6 @@
-import { Server as SocketIOServer } from 'socket.io';
 import { NextResponse } from 'next/server';
-import type { SocketResponse, SocketServer } from '@/app/types/socket';
+import type { SocketResponse } from '@/app/types/socket';
+import { initializeSocketServer } from '@/lib/socketServer';
 
 export async function GET() {
   try {
@@ -8,26 +8,13 @@ export async function GET() {
       const res = NextResponse.next() as unknown as SocketResponse;
       
       if (!res.socket?.server) {
-        throw new Error('Server not initialized');
+        throw new Error('HTTP Server not initialized');
       }
 
-      const io = new SocketIOServer(res.socket.server, {
-        path: '/api/socketio',
-        addTrailingSlash: false,
-        transports: ['websocket', 'polling'],
-        cors: {
-          origin: '*',
-          methods: ['GET', 'POST']
-        }
-      }) as SocketServer;
-
-      global.io = io;
-      res.socket.server.io = io;
-
-      console.log('Socket.IO server initialized');
+      initializeSocketServer(res.socket.server);
     }
     
-    return new NextResponse('Socket.IO server running');
+    return new NextResponse('Socket.IO server running', { status: 200 });
   } catch (error) {
     console.error('Failed to start Socket.IO server:', error);
     return NextResponse.json(

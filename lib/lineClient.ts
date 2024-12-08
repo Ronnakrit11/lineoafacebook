@@ -1,6 +1,6 @@
 import { Client } from '@line/bot-sdk';
 import { PrismaClient } from '@prisma/client';
-import type { SocketServer } from '@/app/types/socket';
+import { getSocketServer } from './socketServer';
 
 const lineConfig = {
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN || '',
@@ -67,7 +67,7 @@ export async function handleLineWebhook(event: LineMessageEvent) {
     });
 
     // Emit the message received event with the updated conversation
-    const io = global.io as SocketServer | undefined;
+    const io = getSocketServer();
     if (updatedConversation && io) {
       console.log('Emitting messageReceived event:', updatedConversation);
       io.emit('messageReceived', updatedConversation);
