@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
       await sendFacebookMessage(conversation.userId, content);
     }
 
-    // Emit the message to all connected clients
-    if (global.io) {
+    // Emit the message to all connected clients using the global io instance
+    if (typeof global !== 'undefined' && global.io) {
       console.log('Emitting messageReceived event from API:', conversation);
       global.io.emit('messageReceived', conversation);
     }

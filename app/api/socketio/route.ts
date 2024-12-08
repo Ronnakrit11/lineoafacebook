@@ -2,18 +2,16 @@ import { Server as SocketIOServer } from 'socket.io';
 import { NextResponse } from 'next/server';
 import type { SocketResponse, SocketServer } from '@/app/types/socket';
 
-let io: SocketServer;
-
 export async function GET() {
   try {
-    if (!io) {
+    if (!global.io) {
       const res = NextResponse.next() as unknown as SocketResponse;
       
       if (!res.socket?.server) {
         throw new Error('Server not initialized');
       }
 
-      io = new SocketIOServer(res.socket.server, {
+      const socketServer = new SocketIOServer(res.socket.server, {
         path: '/api/socketio',
         addTrailingSlash: false,
         transports: ['websocket', 'polling'],
@@ -21,11 +19,10 @@ export async function GET() {
           origin: '*',
           methods: ['GET', 'POST']
         }
-      }) as SocketServer;
+      });
 
-      io._events = {};
-      res.socket.server.io = io;
-      global.io = io;
+      global.io = socketServer as SocketServer;
+      res.socket.server.io = global.io;
 
       console.log('Socket.IO server initialized');
     }

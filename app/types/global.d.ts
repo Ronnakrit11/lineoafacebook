@@ -1,7 +1,7 @@
 import type { SocketServer } from './socket';
 
 declare global {
-  var io: SocketServer | undefined;
+  const io: SocketServer | undefined;
 }
 
 export {};
