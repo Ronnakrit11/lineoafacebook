@@ -2,12 +2,18 @@ import { Server as SocketIOServer } from 'socket.io';
 import { NextResponse } from 'next/server';
 import type { SocketResponse, SocketServer } from '@/app/types/socket';
 
+let io: SocketServer;
+
 export async function GET() {
   try {
-    const res = NextResponse.next() as unknown as SocketResponse;
-    
-    if (!global.io) {
-      const io = new SocketIOServer(res.socket.server, {
+    if (!io) {
+      const res = NextResponse.next() as unknown as SocketResponse;
+      
+      if (!res.socket?.server) {
+        throw new Error('Server not initialized');
+      }
+
+      io = new SocketIOServer(res.socket.server, {
         path: '/api/socketio',
         addTrailingSlash: false,
         transports: ['websocket', 'polling'],
@@ -20,6 +26,8 @@ export async function GET() {
       io._events = {};
       res.socket.server.io = io;
       global.io = io;
+
+      console.log('Socket.IO server initialized');
     }
     
     return new NextResponse('Socket.IO server running');

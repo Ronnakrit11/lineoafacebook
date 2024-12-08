@@ -2,6 +2,7 @@ import type { Server as IOServer } from 'socket.io';
 import type { Server as NetServer } from 'http';
 import type { NextResponse } from 'next/server';
 import type { Socket as ClientSocket } from 'socket.io-client';
+import type { DefaultEventsMap } from 'socket.io';
 import type { ConversationWithMessages } from './chat';
 
 export interface ServerToClientEvents {
@@ -12,9 +13,7 @@ export interface ClientToServerEvents {
   messageReceived: (conversation: ConversationWithMessages) => void;
 }
 
-export type SocketServer = IOServer<ClientToServerEvents, ServerToClientEvents> & {
-  _events: Record<string, unknown>;
-};
+export type SocketServer = IOServer<ClientToServerEvents, ServerToClientEvents>;
 
 export interface ServerSocket extends NetServer {
   io?: SocketServer;
