@@ -1,43 +1,41 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ConversationWithMessages } from '../types/chat';
 import { ConversationList } from './ConversationList';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { getSocket } from '@/lib/socket';
-import { useConversationStore } from '../store/useConversationStore';
 
 interface ChatInterfaceProps {
   initialConversations: ConversationWithMessages[];
 }
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversations }) => {
-  const {
-    conversations,
-    selectedConversation,
-    setConversations,
-    setSelectedConversation,
-    updateConversation,
-  } = useConversationStore();
-
-  useEffect(() => {
-    setConversations(initialConversations);
-  }, [initialConversations, setConversations]);
+  const [conversations, setConversations] = useState<ConversationWithMessages[]>(initialConversations);
+  const [selectedConversation, setSelectedConversation] = useState<ConversationWithMessages | null>(null);
 
   useEffect(() => {
     const socket = getSocket();
     
     if (socket) {
       socket.on('messageReceived', (updatedConversation: ConversationWithMessages) => {
-        updateConversation(updatedConversation);
+        setConversations(prevConversations => 
+          prevConversations.map(conv => 
+            conv.id === updatedConversation.id ? updatedConversation : conv
+          )
+        );
+        
+        if (selectedConversation?.id === updatedConversation.id) {
+          setSelectedConversation(updatedConversation);
+        }
       });
 
       return () => {
         socket.off('messageReceived');
       };
     }
-  }, [updateConversation]);
+  }, [selectedConversation]);
 
   const handleSendMessage = async (content: string) => {
     if (!selectedConversation) return;
@@ -60,24 +58,29 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversatio
       }
 
       const updatedConversation = await response.json();
-      updateConversation(updatedConversation);
+      setConversations(prevConversations =>
+        prevConversations.map(conv =>
+          conv.id === updatedConversation.id ? updatedConversation : conv
+        )
+      );
+      setSelectedConversation(updatedConversation);
     } catch (error) {
       console.error('Error sending message:', error);
     }
   };
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-gray-100">
       <ConversationList 
         conversations={conversations} 
         onSelect={setSelectedConversation}
-        selectedId={selectedConversation?.id} 
+        selectedId={selectedConversation?.id}
       />
 
-      <div className="w-3/4 flex flex-col">
+      <div className="w-3/4 flex flex-col bg-white shadow-lg">
         {selectedConversation ? (
           <>
-            <div className="p-4 bg-gray-200 font-bold">
+            <div className="p-4 bg-blue-500 text-white font-bold">
               {selectedConversation.platform} Chat - {selectedConversation.userId}
             </div>
 
@@ -93,5 +96,3 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversatio
     </div>
   );
 };
-
-export default ChatInterface;

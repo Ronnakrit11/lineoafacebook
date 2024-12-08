@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { sendLineMessage } from '@/lib/lineClient';
+import { sendFacebookMessage } from '@/lib/facebookClient';
 
 const prisma = new PrismaClient();
 
@@ -19,6 +20,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Get the updated conversation with all messages
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
       include: {
@@ -35,9 +37,12 @@ export async function POST(request: NextRequest) {
     // Send message to appropriate platform
     if (platform === 'LINE') {
       await sendLineMessage(conversation.userId, content);
+    } else if (platform === 'FACEBOOK') {
+      await sendFacebookMessage(conversation.userId, content);
     }
 
-    if (conversation && global.io) {
+    // Emit the message to all connected clients
+    if (global.io) {
       global.io.emit('messageReceived', conversation);
     }
 

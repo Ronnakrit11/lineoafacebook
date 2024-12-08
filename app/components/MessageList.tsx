@@ -32,14 +32,17 @@ export const MessageList: React.FC<MessageListProps> = ({ messages }) => {
                 : 'bg-blue-500 text-white'
             }`}
           >
-            <div className="text-xs opacity-75 mb-1">
-              {msg.sender === 'USER' ? 'User' : 'Bot'}
+            <div className="text-sm mb-1">
+              {msg.sender}
             </div>
             <div className="break-words">{msg.content}</div>
+            <div className="text-xs opacity-75 mt-1">
+              {new Date(msg.timestamp).toLocaleTimeString()}
+            </div>
           </div>
         </div>
       ))}
       <div ref={messagesEndRef} />
     </div>
   );
-}
+};
