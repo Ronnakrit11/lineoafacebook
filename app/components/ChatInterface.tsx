@@ -27,18 +27,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversatio
   }, [initialConversations, setConversations]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const channel = pusherClient.subscribe(PUSHER_CHANNELS.CHAT);
     
     channel.bind(PUSHER_EVENTS.MESSAGE_RECEIVED, (message: any) => {
-      console.log('Message received:', message);
-      if (message.conversationId) {
+      if (message?.conversationId) {
         addMessage(message);
       }
     });
 
     channel.bind(PUSHER_EVENTS.CONVERSATION_UPDATED, (conversation: any) => {
-      console.log('Conversation updated:', conversation);
-      if (conversation.id) {
+      if (conversation?.id) {
         updateConversation(conversation);
       }
     });
@@ -50,6 +50,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversatio
       .catch(err => console.error('Error fetching conversations:', err));
 
     return () => {
+      channel.unbind_all();
       pusherClient.unsubscribe(PUSHER_CHANNELS.CHAT);
     };
   }, [updateConversation, setConversations, addMessage]);
@@ -73,9 +74,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversatio
       if (!response.ok) {
         throw new Error('Failed to send message');
       }
-
-      const updatedConversation = await response.json();
-      updateConversation(updatedConversation);
     } catch (error) {
       console.error('Error sending message:', error);
     }
