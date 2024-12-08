@@ -25,14 +25,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversatio
   } = useConversationStore();
 
   const handleMessageReceived = useCallback((message: PusherMessage) => {
-    console.log('Received message:', message);
     if (message?.conversationId) {
       addMessage(message as Message);
     }
   }, [addMessage]);
 
   const handleConversationUpdated = useCallback((conversation: PusherConversation) => {
-    console.log('Conversation updated:', conversation);
     if (conversation?.id) {
       updateConversation(conversation as ConversationWithMessages);
     }
@@ -51,15 +49,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversatio
     
     channel.bind(PUSHER_EVENTS.MESSAGE_RECEIVED, handleMessageReceived);
     channel.bind(PUSHER_EVENTS.CONVERSATION_UPDATED, handleConversationUpdated);
-
-    // Debug log for Pusher connection
-    pusherClient.connection.bind('connected', () => {
-      console.log('Connected to Pusher');
-    });
-
-    pusherClient.connection.bind('error', (err: Error) => {
-      console.error('Pusher connection error:', err);
-    });
 
     return () => {
       channel.unbind(PUSHER_EVENTS.MESSAGE_RECEIVED, handleMessageReceived);
