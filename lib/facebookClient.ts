@@ -1,5 +1,7 @@
 import axios from 'axios';
 import { PrismaClient } from '@prisma/client';
+import { pusherServer, PUSHER_EVENTS, PUSHER_CHANNELS } from './pusher';
+import { formatMessageForPusher, formatConversationForPusher } from './messageFormatter';
 
 const prisma = new PrismaClient();
 
@@ -47,7 +49,7 @@ export async function handleFacebookWebhook(body: FacebookWebhookBody) {
         });
       }
 
-      await prisma.message.create({
+      const newMessage = await prisma.message.create({
         data: {
           conversationId: conversation.id,
           content: message,
@@ -56,23 +58,58 @@ export async function handleFacebookWebhook(body: FacebookWebhookBody) {
         }
       });
 
-      await sendFacebookMessage(senderId, 'ได้รับข้อความของคุณแล้ว');
+      const updatedConversation = await prisma.conversation.findUnique({
+        where: { id: conversation.id },
+        include: {
+          messages: {
+            orderBy: { timestamp: 'asc' }
+          }
+        }
+      });
+
+      if (updatedConversation) {
+        await Promise.all([
+          pusherServer.trigger(
+            PUSHER_CHANNELS.CHAT,
+            PUSHER_EVENTS.MESSAGE_RECEIVED,
+            formatMessageForPusher(newMessage)
+          ),
+          pusherServer.trigger(
+            PUSHER_CHANNELS.CHAT,
+            PUSHER_EVENTS.CONVERSATION_UPDATED,
+            formatConversationForPusher(updatedConversation)
+          ),
+        ]);
+      }
     }
   }
 }
 
-export async function sendFacebookMessage(recipientId: string, messageText: string) {
+export async function sendFacebookMessage(recipientId: string, messageText: string): Promise<boolean> {
+  if (!recipientId || !messageText || !PAGE_ACCESS_TOKEN) {
+    console.error('Missing required parameters for Facebook message');
+    return false;
+  }
+
   try {
-    await axios.post(FACEBOOK_GRAPH_API, {
-      recipient: { id: recipientId },
-      message: { text: messageText },
-      access_token: PAGE_ACCESS_TOKEN
-    }, {
-      headers: {
-        'Content-Type': 'application/json'
+    await axios.post(
+      FACEBOOK_GRAPH_API,
+      {
+        recipient: { id: recipientId },
+        message: { text: messageText }
+      },
+      {
+        params: {
+          access_token: PAGE_ACCESS_TOKEN
+        },
+        headers: {
+          'Content-Type': 'application/json'
+        }
       }
-    });
+    );
+    return true;
   } catch (error) {
     console.error('Error sending Facebook message:', error);
+    return false;
   }
 }

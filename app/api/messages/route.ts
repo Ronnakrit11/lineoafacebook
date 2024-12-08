@@ -12,6 +12,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { conversationId, content, platform } = body;
 
+    if (!conversationId || !content || !platform) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
     // Create bot message in database
     const newMessage = await prisma.message.create({
       data: {
@@ -37,10 +44,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Send message to appropriate platform
+    let messageSent = false;
     if (platform === 'LINE') {
-      await sendLineMessage(conversation.userId, content);
+      messageSent = await sendLineMessage(conversation.userId, content);
     } else if (platform === 'FACEBOOK') {
-      await sendFacebookMessage(conversation.userId, content);
+      messageSent = await sendFacebookMessage(conversation.userId, content);
+    }
+
+    if (!messageSent) {
+      throw new Error('Failed to send message to platform');
     }
 
     // Trigger Pusher events with optimized payloads
