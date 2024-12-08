@@ -56,7 +56,7 @@ export async function handleFacebookWebhook(body: FacebookWebhookBody) {
         }
       });
 
-      await sendFacebookMessage(senderId, 'ระบบได้รับข้อความของคุณแล้ว');
+      await sendFacebookMessage(senderId, 'ได้รับข้อความของคุณแล้ว');
     }
   }
 }
