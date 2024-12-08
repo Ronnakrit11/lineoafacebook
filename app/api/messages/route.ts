@@ -11,7 +11,6 @@ export async function POST(request: Request) {
     const body: SendMessageRequest = await request.json();
     const { conversationId, content, platform } = body;
 
-    // Get conversation to access userId
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
       include: {
@@ -23,7 +22,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
-    // Try to send message first
     try {
       if (platform === 'LINE') {
         await sendLineMessage(conversation.userId, content);
@@ -35,8 +33,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to send message to platform' }, { status: 500 });
     }
 
-    // Only save message if sending was successful
-    const message = await prisma.message.create({
+    await prisma.message.create({
       data: {
         conversationId,
         content,
@@ -45,7 +42,6 @@ export async function POST(request: Request) {
       }
     });
 
-    // Return updated conversation with messages
     const updatedConversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
       include: {
