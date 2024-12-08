@@ -21,7 +21,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
           key={conv.id}
           onClick={() => onSelect(conv)}
           className={`p-4 hover:bg-gray-100 cursor-pointer ${
-            selectedId === conv.id ? 'bg-blue-50' : ''
+            selectedId === conv.id ? 'bg-blue-50': ''
           }`}
         >
           <div className="font-medium">{conv.platform}</div>
