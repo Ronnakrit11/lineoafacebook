@@ -6,7 +6,9 @@ export function getChannelId(source: LineSource): string {
       return source.roomId;
     case 'group':
       return source.groupId;
-    default:
+    case 'user':
       return source.userId;
+    default:
+      throw new Error('Invalid source type');
   }
 }

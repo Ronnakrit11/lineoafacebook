@@ -1,51 +1,48 @@
 import type { WebhookEvent, TextEventMessage, EventBase } from '@line/bot-sdk';
 
-interface BaseSource {
-  type: string;
-  userId?: string;
-}
-
-interface UserSource extends BaseSource {
+export interface UserSource {
   type: 'user';
   userId: string;
 }
 
-interface GroupSource extends BaseSource {
+export interface GroupSource {
   type: 'group';
+  userId?: string;
   groupId: string;
 }
 
-interface RoomSource extends BaseSource {
+export interface RoomSource {
   type: 'room';
+  userId?: string;
   roomId: string;
 }
 
 export type LineSource = UserSource | GroupSource | RoomSource;
 
-export interface LineTextMessageEvent extends EventBase {
+export interface LineTextMessageEvent extends Omit<EventBase, 'source'> {
   type: 'message';
   message: TextEventMessage;
   source: LineSource;
   replyToken: string;
   mode: 'active' | 'standby';
-  webhookEventId: string;
-  deliveryContext: {
-    isRedelivery: boolean;
-  };
 }
 
 export function isTextMessageEvent(event: WebhookEvent): event is LineTextMessageEvent {
   if (event.type !== 'message') return false;
   if (!('message' in event)) return false;
   if (event.message.type !== 'text') return false;
-  if (!('source' in event)) return false;
-  if (!('webhookEventId' in event)) return false;
-  if (!('deliveryContext' in event)) return false;
-
+  
   const source = event.source;
-  return (
-    (source.type === 'user' && 'userId' in source) ||
-    (source.type === 'group' && 'groupId' in source) ||
-    (source.type === 'room' && 'roomId' in source)
-  );
+  if (!source) return false;
+
+  switch (source.type) {
+    case 'user':
+      return 'userId' in source;
+    case 'group':
+      return 'groupId' in source;
+    case 'room':
+      return 'roomId' in source;
+    default:
+      return false;
+  }
 }
