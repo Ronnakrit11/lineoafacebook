@@ -54,9 +54,30 @@ export async function handleLineWebhook(event: LineMessageEvent) {
       }
     });
 
-    return lineClient.replyMessage(event.replyToken, {
-      type: 'text',
-      text: 'ระบบได้รับข้อความของคุณแล้ว'
+    const updatedConversation = await prisma.conversation.findUnique({
+      where: { id: conversation.id },
+      include: {
+        messages: {
+          orderBy: { timestamp: 'asc' }
+        }
+      }
     });
+
+    if (updatedConversation && global.io) {
+      global.io.emit('messageReceived', updatedConversation);
+    }
+  }
+}
+
+export async function sendLineMessage(userId: string, message: string) {
+  try {
+    await lineClient.pushMessage(userId, {
+      type: 'text',
+      text: message
+    });
+    return true;
+  } catch (error) {
+    console.error('Error sending LINE message:', error);
+    return false;
   }
 }
