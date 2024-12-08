@@ -9,12 +9,25 @@ const lineConfig = {
 const prisma = new PrismaClient();
 export const lineClient = new Client(lineConfig);
 
-export async function handleLineWebhook(event: any) {
+interface LineMessageEvent {
+  type: string;
+  message: {
+    type: string;
+    text: string;
+  };
+  source: {
+    userId: string;
+    roomId?: string;
+    groupId?: string;
+  };
+  replyToken: string;
+}
+
+export async function handleLineWebhook(event: LineMessageEvent) {
   if (event.type === 'message' && event.message.type === 'text') {
     const userId = event.source.userId;
     const text = event.message.text;
     
-    // สร้างหรือค้นหา conversation
     let conversation = await prisma.conversation.findFirst({
       where: {
         userId: userId,
@@ -32,7 +45,6 @@ export async function handleLineWebhook(event: any) {
       });
     }
 
-    // บันทึกข้อความ
     await prisma.message.create({
       data: {
         conversationId: conversation.id,
@@ -42,7 +54,6 @@ export async function handleLineWebhook(event: any) {
       }
     });
 
-    // ส่งการตอบกลับ
     return lineClient.replyMessage(event.replyToken, {
       type: 'text',
       text: 'ระบบได้รับข้อความของคุณแล้ว'
