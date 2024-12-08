@@ -1,17 +1,41 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { ConversationWithMessages } from '../types/chat';
 import { ConversationList } from './ConversationList';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
+import { getSocket } from '@/lib/socket';
+import { useConversationStore } from '../store/useConversationStore';
 
 interface ChatInterfaceProps {
-  conversations: ConversationWithMessages[];
+  initialConversations: ConversationWithMessages[];
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ conversations }) => {
-  const [selectedConversation, setSelectedConversation] = useState<ConversationWithMessages | null>(null);
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversations }) => {
+  const {
+    conversations,
+    selectedConversation,
+    setConversations,
+    setSelectedConversation,
+    updateConversation,
+  } = useConversationStore();
+
+  useEffect(() => {
+    setConversations(initialConversations);
+  }, [initialConversations, setConversations]);
+
+  useEffect(() => {
+    const socket = getSocket();
+
+    socket.on('messageReceived', (updatedConversation: ConversationWithMessages) => {
+      updateConversation(updatedConversation);
+    });
+
+    return () => {
+      socket.off('messageReceived');
+    };
+  }, [updateConversation]);
 
   const handleSendMessage = async (content: string) => {
     if (!selectedConversation) return;
@@ -31,7 +55,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ conversations }) => {
 
       if (response.ok) {
         const updatedConversation = await response.json();
-        setSelectedConversation(updatedConversation);
+        updateConversation(updatedConversation);
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -42,7 +66,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ conversations }) => {
     <div className="flex h-screen">
       <ConversationList 
         conversations={conversations} 
-        onSelect={setSelectedConversation} 
+        onSelect={setSelectedConversation}
+        selectedId={selectedConversation?.id} 
       />
 
       <div className="w-3/4 flex flex-col">

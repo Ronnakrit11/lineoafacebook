@@ -28,7 +28,7 @@ export default async function Home() {
       </header>
       
       <main className="container mx-auto px-4 py-6">
-        <ChatInterface conversations={conversations} />
+        <ChatInterface initialConversations={conversations} />
       </main>
     </div>
   );
