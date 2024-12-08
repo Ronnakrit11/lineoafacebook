@@ -67,14 +67,15 @@ export async function handleLineWebhook(event: LineMessageEvent) {
 
     // Emit the message received event with the updated conversation
     if (updatedConversation && global.io) {
+      console.log('Emitting messageReceived event:', updatedConversation);
       global.io.emit('messageReceived', updatedConversation);
     }
 
     // Send automatic reply
-    //await lineClient.replyMessage(event.replyToken, {
-      //type: 'text',
-      //text: 'waiting...'
-    //});
+    await lineClient.replyMessage(event.replyToken, {
+      type: 'text',
+      text: 'ระบบได้รับข้อความของคุณแล้ว'
+    });
   }
 }
 

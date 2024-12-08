@@ -6,36 +6,47 @@ import { ConversationList } from './ConversationList';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { getSocket } from '@/lib/socket';
+import { useConversationStore } from '../store/useConversationStore';
 
 interface ChatInterfaceProps {
   initialConversations: ConversationWithMessages[];
 }
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversations }) => {
-  const [conversations, setConversations] = useState<ConversationWithMessages[]>(initialConversations);
-  const [selectedConversation, setSelectedConversation] = useState<ConversationWithMessages | null>(null);
+  const {
+    conversations,
+    selectedConversation,
+    setConversations,
+    setSelectedConversation,
+    updateConversation
+  } = useConversationStore();
+
+  useEffect(() => {
+    setConversations(initialConversations);
+  }, [initialConversations, setConversations]);
 
   useEffect(() => {
     const socket = getSocket();
     
     if (socket) {
-      socket.on('messageReceived', (updatedConversation: ConversationWithMessages) => {
-        setConversations(prevConversations => 
-          prevConversations.map(conv => 
-            conv.id === updatedConversation.id ? updatedConversation : conv
-          )
-        );
-        
-        if (selectedConversation?.id === updatedConversation.id) {
-          setSelectedConversation(updatedConversation);
-        }
-      });
+      const handleMessageReceived = (updatedConversation: ConversationWithMessages) => {
+        console.log('Message received:', updatedConversation);
+        updateConversation(updatedConversation);
+      };
+
+      socket.on('messageReceived', handleMessageReceived);
+
+      // Fetch initial conversations
+      fetch('/api/webhooks/conversations')
+        .then(res => res.json())
+        .then(data => setConversations(data))
+        .catch(err => console.error('Error fetching conversations:', err));
 
       return () => {
-        socket.off('messageReceived');
+        socket.off('messageReceived', handleMessageReceived);
       };
     }
-  }, [selectedConversation]);
+  }, [updateConversation, setConversations]);
 
   const handleSendMessage = async (content: string) => {
     if (!selectedConversation) return;
@@ -58,12 +69,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialConversatio
       }
 
       const updatedConversation = await response.json();
-      setConversations(prevConversations =>
-        prevConversations.map(conv =>
-          conv.id === updatedConversation.id ? updatedConversation : conv
-        )
-      );
-      setSelectedConversation(updatedConversation);
+      updateConversation(updatedConversation);
     } catch (error) {
       console.error('Error sending message:', error);
     }

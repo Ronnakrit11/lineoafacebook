@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
 
     // Emit the message to all connected clients
     if (global.io) {
+      console.log('Emitting messageReceived event from API:', conversation);
       global.io.emit('messageReceived', conversation);
     }
 
