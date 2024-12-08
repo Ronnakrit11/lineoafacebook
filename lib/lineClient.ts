@@ -23,6 +23,19 @@ interface LineMessageEvent {
   replyToken: string;
 }
 
+async function getLineUserProfile(userId: string) {
+  try {
+    const profile = await lineClient.getProfile(userId);
+    return {
+      displayName: profile.displayName,
+      pictureUrl: profile.pictureUrl,
+    };
+  } catch (error) {
+    console.error('Error fetching LINE profile:', error);
+    return null;
+  }
+}
+
 export async function handleLineWebhook(event: LineMessageEvent) {
   if (event.type === 'message' && event.message.type === 'text') {
     const userId = event.source.userId;
@@ -36,11 +49,14 @@ export async function handleLineWebhook(event: LineMessageEvent) {
     });
 
     if (!conversation) {
+      const profile = await getLineUserProfile(userId);
       conversation = await prisma.conversation.create({
         data: {
           userId: userId,
           platform: 'LINE',
-          channelId: event.source.roomId || event.source.groupId || userId
+          channelId: event.source.roomId || event.source.groupId || userId,
+          displayName: profile?.displayName,
+          pictureUrl: profile?.pictureUrl,
         }
       });
     }

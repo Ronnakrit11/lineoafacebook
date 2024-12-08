@@ -9,3 +9,8 @@ export interface SendMessageRequest {
   content: string;
   platform: 'LINE' | 'FACEBOOK';
 }
+
+export interface LineProfile {
+  displayName: string;
+  pictureUrl?: string;
+}
